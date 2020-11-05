@@ -4,6 +4,7 @@ import (
 	//"fmt"
 	"github.com/sieusanh/Banking_App/helpers"
 	"github.com/sieusanh/Banking_App/interfaces"
+	"github.com/sieusanh/Banking_App/database"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 

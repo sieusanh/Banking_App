@@ -1,18 +1,21 @@
 package main
 
 import (
-	/*
+	
 	"github.com/sieusanh/Banking_App/migrations"
 	"github.com/sieusanh/Banking_App/interfaces"
-	*/
+	
 	"github.com/sieusanh/Banking_App/api"
 	"github.com/sieusanh/Banking_App/database"
 )
 
 func main() {
 
-	/*
+	
 	// Initialize Database
+	database.InitDatabase()
+
+	// Auto Migrate Tables
 	migrations.Migrate()
 
 	users := []interfaces.User{
@@ -21,8 +24,9 @@ func main() {
 	}
 	
 	migrations.CreateAccounts(users)
-	*/
-	database.InitDatabase()
+	
+	// Start Rest API Server	
 	api.StartApi()
+
 	//api.Shutdown()
 }
