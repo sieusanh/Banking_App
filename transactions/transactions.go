@@ -4,6 +4,7 @@ import (
 	"github.com/sieusanh/Banking_App/helpers"
 	"github.com/sieusanh/Banking_App/interfaces"
 	"github.com/sieusanh/Banking_App/database"
+	"github.com/sieusanh/Banking_App/users"
 )
 
 // Save info about a transfer in transation history
@@ -19,6 +20,7 @@ func GetTransactionByAccount(id uint) []interfaces.ResponseTransaction{
 	return transactions
 }
 
+// Get Transaction History List with User's ID
 func GetMyTransactions(id string, jwt string) map[string]interface{} {
 	isValid := helpers.ValidateToken(id, jwt)
 	if isValid {
@@ -36,6 +38,6 @@ func GetMyTransactions(id string, jwt string) map[string]interface{} {
 		return response
 	} 
 		
-	return map[string]interface{} {"message": "Not valid token"}
+	return users.FailResponse("Not valid token")
 	
 }

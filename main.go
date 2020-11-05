@@ -24,4 +24,5 @@ func main() {
 	*/
 	database.InitDatabase()
 	api.StartApi()
+	//api.Shutdown()
 }

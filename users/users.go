@@ -24,15 +24,15 @@ func Login(username, pass string) (map[string]interface{}, time.Time) {
 		user := &interfaces.User{}
 
 		// Check if this username exis
-		if database.DB.Where("username = ?", username).First(&user).RecordNotFound() {
-			return map[string]interface{}{"message": "User not found"}, time.Time{}
+		if database.DB.Where("username = ?", username).First(&user).RecordNotFound(){
+			return FailResponse("Username not found"), time.Time{}
 		}
 
 		// Verify password
 		passErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass))
 
 		if passErr == bcrypt.ErrMismatchedHashAndPassword && passErr != nil {
-			return map[string]interface{}{"message": "Wrong password"}, time.Time{}
+			return FailResponse("Wrong password"), time.Time{}
 		}
 
 		// Find accounts for the user
@@ -45,7 +45,7 @@ func Login(username, pass string) (map[string]interface{}, time.Time) {
 		return response, expirationTime
 	} 
 	
-	return map[string]interface{}{"message": "not valid values"}, time.Time{}
+	return FailResponse("Not valid values"), time.Time{}
 }
 
 // prepareToken function will process token logic matters
@@ -84,6 +84,14 @@ func prepareResponse(user *interfaces.User, accounts []interfaces.ResponseAccoun
 	return response, expirationTime
 }
 
+func FailResponse(s string) map[string]interface{}{
+	response := make(map[string]interface{})
+	response["message"] = s
+	response["jwt"] = ""
+	response["data"] = ""
+	return response
+}
+
 // User Registration Function
 func Register(username, email, pass string) (map[string]interface{}, time.Time) {
 	// Add validation to registration
@@ -114,13 +122,13 @@ func Register(username, email, pass string) (map[string]interface{}, time.Time) 
 			return response, expirationTime
 
 		}
-		return map[string]interface{}{"message": "Username has alrealdy existed"}, time.Time{}
+		return FailResponse("Username has alrealdy existed"), time.Time{}
 	} 
 	
-	return map[string]interface{}{"message": "not valid values"}, time.Time{}
+	return FailResponse("Not valid values"), time.Time{}
 }
 
-//
+// Get User's Info with User's ID
 func GetUser(id string, jwt string) map[string]interface{} {
 	isValid := helpers.ValidateToken(id, jwt)
 	// Find and return user
@@ -130,7 +138,7 @@ func GetUser(id string, jwt string) map[string]interface{} {
 
 		// Check if this username exis
 		if database.DB.Where("id = ?", id).First(&user).RecordNotFound() {
-			return map[string]interface{}{"message": "User not found"}
+			return FailResponse("User not found")
 		}
 
 		// Find accounts for the user
@@ -143,6 +151,6 @@ func GetUser(id string, jwt string) map[string]interface{} {
 		return response
 	} 
 
-	return map[string]interface{}{"message": "Not valid token"}
+	return FailResponse("Not valid token")
 }
 

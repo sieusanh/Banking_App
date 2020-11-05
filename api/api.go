@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
+	"os"
 	"context"
 	"os/signal"
 	"github.com/sieusanh/Banking_App/helpers"
@@ -16,6 +16,8 @@ import (
 	"github.com/sieusanh/Banking_App/transactions"
 	"github.com/gorilla/mux"
 )
+
+var server *http.Server
 
 type Login struct {
 	Username string
@@ -36,6 +38,7 @@ type TransactionBody struct {
 	Amount int
 }
 
+// User Login
 func login(w http.ResponseWriter, r *http.Request) {
 	// Read the body of API request
 	body := readBody(r)
@@ -57,6 +60,22 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare response
 	apiResponse(login, w)
+}
+
+// User Logout
+func logout(w http.ResponseWriter, r *http.Request) {
+	// Destroy the cookie
+	// see https://golang.org/pkg/net/http/#Cookie
+ 	// Setting MaxAge<0 means delete cookie now.
+
+	cookie := http.Cookie {
+		Name: "token",
+		MaxAge: -1}
+
+	http.SetCookie(w, &cookie)
+
+	var response = map[string]interface{}{"message": "Old cookie deleted. Logged out!"}
+	apiResponse(response, w)
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +101,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	apiResponse(register, w)
 }
 
+// Get User's Info with User's ID
 func getUser(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
@@ -109,7 +129,21 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	apiResponse(user, w)
 }
 
+// Bank transfer between two different account's ID
 func transaction(w http.ResponseWriter, r *http.Request) {
+	var trans_type_string string
+	var trans_type_int int
+
+	vars := mux.Vars(r)
+	trans_type_string = vars["code"]
+	if trans_type_string == "transfer" {
+		trans_type_int = 0
+	} else if trans_type_string == "withdraw" {
+		trans_type_int = -1
+	} else if trans_type_string == "deposit" {
+		trans_type_int = 1
+	}
+
 	body := readBody(r)
 	
 	// Get token string from Cookie
@@ -130,10 +164,11 @@ func transaction(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &formattedBody)
 	helpers.HandleErr(err)
 
-	transaction := useraccounts.Transaction(formattedBody.UserId, formattedBody.From, formattedBody.To, formattedBody.Amount, auth)
+	transaction := useraccounts.Transaction(formattedBody.UserId, formattedBody.From, formattedBody.To, formattedBody.Amount, auth, trans_type_int)
 	apiResponse(transaction, w)
 }
 
+// Get Transaction History List with User's ID
 func getMyTransactions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["userID"]
@@ -160,36 +195,9 @@ func getMyTransactions(w http.ResponseWriter, r *http.Request) {
 	apiResponse(transactions, w)
 }
 
-// Create Router, handle our API endpoints
-func StartApi() {
-	router := mux.NewRouter()
-	// Add panic handler middleware
-	router.Use(helpers.PanicHandler)
-	router.HandleFunc("/login", login).Methods("POST")
-	router.HandleFunc("/register", register).Methods("POST")
-	router.HandleFunc("/transaction", transaction).Methods("POST")
-	router.HandleFunc("/transaction/{userID}", getMyTransactions).Methods("GET")
-	router.HandleFunc("/user/{id}", getUser).Methods("GET")
-	fmt.Println("App is working on port: 8888")
 
-	// Create Http Server
-	server := &http.Server {
-		Addr: ":8888",
-		Handler: router,
-		IdleTimeout: 120*time.Second,
-		ReadTimeout: 1*time.Second,
-		WriteTimeout: 1*time.Second,
-	}
-
-	//log.Fatal(http.ListenAndServe(":8888", router))
-
-	go func() {
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-	
+// Graceful Shutdown server
+func Shutdown() {
 	// Graceful Shutdown
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt)
@@ -227,5 +235,34 @@ func apiResponse(call map[string]interface{}, w http.ResponseWriter) {
 		// we should return the whole call variable instead of "data"
 		resp := call
 		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// Create Router, handle our API endpoints
+func StartApi(){
+	router := mux.NewRouter()
+	// Add panic handler middleware
+	//router.Use(helpers.PanicHandler)
+	router.HandleFunc("/login", login).Methods("POST")
+	router.HandleFunc("/register", register).Methods("POST")
+	router.HandleFunc("/transaction/{code}", transaction).Methods("POST")
+	router.HandleFunc("/transaction/{userID}", getMyTransactions).Methods("GET")
+	router.HandleFunc("/user/{id}", getUser).Methods("GET")
+	router.HandleFunc("/logout", logout).Methods("GET")
+	fmt.Println("App is working on port: 8888")
+
+	// Create Http Server
+	server = &http.Server {
+		Addr: ":8888",
+		Handler: router,
+		IdleTimeout: 120*time.Second,
+		ReadTimeout: 1*time.Second,
+		WriteTimeout: 1*time.Second,
+	}
+
+	//log.Fatal(http.ListenAndServe(":8888", router))
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
