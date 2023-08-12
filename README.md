@@ -1,5 +1,5 @@
 # Banking_App
-Simple Fintech Banking App
+Fintech Banking App
 
 Implement REST API Server with Funtions:
 
